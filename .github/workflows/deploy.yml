@@ -66,10 +66,10 @@ jobs:
           sf project deploy start \
             --manifest manifest/package.xml \
             --ignore-conflicts \
+            --tests ApexHello_Test \
             --tests MySimpleClass_Test \
             --tests CalculatorUtil_Test \
             --tests OpportunityFetchDetails_Test \
             --tests OpportunityRelatedAccounts_Test \
-            --tests ApexHello_Test
             --wait 30 \
             -o DEPLOY_ORG
