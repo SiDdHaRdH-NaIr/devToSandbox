@@ -31,7 +31,8 @@ jobs:
           sfdx force:source:deploy -x manifest/package.xml \
             --checkonly \
             --testlevel RunLocalTests \
-            --wait 30
+            --wait 30 \
+            -u DEPLOY_ORG
 
   deploy:
     name: Deploy to Salesforce on Merge to Main
@@ -42,7 +43,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sfdx@v2
+        uses: sfdx-actions/setup-sfdx@v1
 
       - name: Authenticate to Salesforce using Auth URL
         env:
@@ -56,4 +57,5 @@ jobs:
         run: |
           sfdx force:source:deploy -x manifest/package.xml \
             --testlevel RunLocalTests \
-            --wait 30
+            --wait 30 \
+            -u DEPLOY_ORG
