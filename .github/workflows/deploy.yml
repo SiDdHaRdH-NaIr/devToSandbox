@@ -16,8 +16,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sf@v1
+      - name: Install Salesforce CLI (sf)
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
 
       - name: Authenticate to Salesforce using Auth URL
         env:
@@ -48,8 +50,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sf@v1
+      - name: Install Salesforce CLI (sf)
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
 
       - name: Authenticate to Salesforce using Auth URL
         env:
