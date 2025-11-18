@@ -1,5 +1,5 @@
 @IsTest
-public class ApexHelloTest {
+public class ApexHello_Test {
 
     @IsTest
     static void testHelloSalesforce() {
