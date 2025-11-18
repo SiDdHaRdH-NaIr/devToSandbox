@@ -16,7 +16,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sfdx@v2
+        uses: sfdx-actions/setup-sfdx@v1
 
       - name: Authenticate to Salesforce using Auth URL
         env:
