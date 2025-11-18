@@ -1,0 +1,59 @@
+name: Salesforce Deployment Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate Deployment on PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        uses: sfdx-actions/setup-sfdx@v2
+
+      - name: Authenticate to Salesforce using Auth URL
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
+          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
+          sfdx force:org:display -u DEPLOY_ORG
+
+      - name: Validate Deploy (checkonly) with RunLocalTests
+        run: |
+          sfdx force:source:deploy -x manifest/package.xml \
+            --checkonly \
+            --testlevel RunLocalTests \
+            --wait 30
+
+  deploy:
+    name: Deploy to Salesforce on Merge to Main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI
+        uses: sfdx-actions/setup-sfdx@v2
+
+      - name: Authenticate to Salesforce using Auth URL
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
+          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
+          sfdx force:org:display -u DEPLOY_ORG
+
+      - name: Deploy Source with RunLocalTests
+        run: |
+          sfdx force:source:deploy -x manifest/package.xml \
+            --testlevel RunLocalTests \
+            --wait 30
