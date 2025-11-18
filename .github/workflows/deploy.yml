@@ -54,10 +54,10 @@ jobs:
           sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
           sfdx force:org:display -u DEPLOY_ORG
 
-      - name: Deploy Source with RunSpecifiedTests (MySimpleClass_Test)
+      - name: Deploy Source with RunSpecifiedTests (CalculatorUtil_Test)
         run: |
           sfdx force:source:deploy -x manifest/package.xml \
             --testlevel RunSpecifiedTests \
-            --runtests MySimpleClass_Test \
+            --runtests CalculatorUtil_Test \
             --wait 30 \
             -u DEPLOY_ORG
