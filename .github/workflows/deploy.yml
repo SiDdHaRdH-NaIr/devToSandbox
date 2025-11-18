@@ -19,7 +19,6 @@ jobs:
       - name: Install Salesforce CLI (sf)
         run: |
           npm install --global @salesforce/cli
-          sf --version
 
       - name: Authenticate to Salesforce using Auth URL
         env:
@@ -27,16 +26,17 @@ jobs:
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
           sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
-          sf org display -o DEPLOY_ORG
 
-      - name: Validate Deploy (checkonly with selected tests)
+      - name: Validate Deploy (dry run with tests)
         run: |
           sf project deploy start \
             --manifest manifest/package.xml \
-            --checkonly \
-            --force-overwrite \
-            --test-level RunSpecifiedTests \
-            --tests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
+            --dry-run \
+            --ignore-conflicts \
+            --tests MySimpleClass_Test \
+            --tests CalculatorUtil_Test \
+            --tests OpportunityFetchDetails_Test \
+            --tests OpportunityRelatedAccounts_Test \
             --wait 30 \
             -o DEPLOY_ORG
 
@@ -53,7 +53,6 @@ jobs:
       - name: Install Salesforce CLI (sf)
         run: |
           npm install --global @salesforce/cli
-          sf --version
 
       - name: Authenticate to Salesforce using Auth URL
         env:
@@ -61,14 +60,15 @@ jobs:
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
           sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
-          sf org display -o DEPLOY_ORG
 
-      - name: Deploy Source to Sandbox
+      - name: Deploy Source with tests
         run: |
           sf project deploy start \
             --manifest manifest/package.xml \
-            --force-overwrite \
-            --test-level RunSpecifiedTests \
-            --tests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
+            --ignore-conflicts \
+            --tests MySimpleClass_Test \
+            --tests CalculatorUtil_Test \
+            --tests OpportunityFetchDetails_Test \
+            --tests OpportunityRelatedAccounts_Test \
             --wait 30 \
             -o DEPLOY_ORG
