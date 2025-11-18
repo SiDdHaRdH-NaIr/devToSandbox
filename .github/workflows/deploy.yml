@@ -70,5 +70,6 @@ jobs:
             --tests CalculatorUtil_Test \
             --tests OpportunityFetchDetails_Test \
             --tests OpportunityRelatedAccounts_Test \
+            --tests ApexHelloTest
             --wait 30 \
             -o DEPLOY_ORG
