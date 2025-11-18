@@ -33,6 +33,7 @@ jobs:
             --manifest manifest/package.xml \
             --dry-run \
             --ignore-conflicts \
+            --tests ApexHello_Test \
             --tests MySimpleClass_Test \
             --tests CalculatorUtil_Test \
             --tests OpportunityFetchDetails_Test \
