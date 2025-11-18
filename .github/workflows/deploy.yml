@@ -1,0 +1,76 @@
+name: Salesforce Deployment Pipeline
+
+on:
+  pull_request:
+    branches: [ main ]
+  push:
+    branches: [ main ]
+
+jobs:
+  validate:
+    name: Validate Deployment on PR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI (sf)
+        run: |
+          npm install --global @salesforce/cli
+
+      - name: Authenticate to Salesforce using Auth URL
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
+          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+
+      - name: Validate Deploy (dry run with tests)
+        run: |
+          sf project deploy start \
+            --manifest manifest/package.xml \
+            --dry-run \
+            --ignore-conflicts \
+            --tests ApexHello_Test \
+            --tests MySimpleClass_Test \
+            --tests CalculatorUtil_Test \
+            --tests OpportunityFetchDetails_Test \
+            --tests OpportunityRelatedAccounts_Test \
+            --wait 30 \
+            -o DEPLOY_ORG
+
+
+  deploy:
+    name: Deploy to Salesforce on Merge to Main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Salesforce CLI (sf)
+        run: |
+          npm install --global @salesforce/cli
+
+      - name: Authenticate to Salesforce using Auth URL
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+        run: |
+          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
+          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+
+      - name: Deploy Source with tests
+        run: |
+          sf project deploy start \
+            --manifest manifest/package.xml \
+            --ignore-conflicts \
+            --tests ApexHello_Test \
+            --tests MySimpleClass_Test \
+            --tests CalculatorUtil_Test \
+            --tests OpportunityFetchDetails_Test \
+            --tests OpportunityRelatedAccounts_Test \
+            --wait 30 \
+            -o DEPLOY_ORG
