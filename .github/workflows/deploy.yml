@@ -17,25 +17,26 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sfdx@v1
+        uses: sfdx-actions/setup-sf@v1
 
       - name: Authenticate to Salesforce using Auth URL
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
-          sfdx force:org:display -u DEPLOY_ORG
+          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+          sf org display -o DEPLOY_ORG
 
-      - name: Validate Deploy (checkonly with selected test classes)
+      - name: Validate Deploy (checkonly with selected tests)
         run: |
-          sfdx force:source:deploy -x manifest/package.xml \
+          sf project deploy start \
+            --manifest manifest/package.xml \
             --checkonly \
-            --ignore-conflicts \
-            --testlevel RunSpecifiedTests \
-            --runtests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
+            --force-overwrite \
+            --test-level RunSpecifiedTests \
+            --tests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
             --wait 30 \
-            -u DEPLOY_ORG
+            -o DEPLOY_ORG
 
 
   deploy:
@@ -48,21 +49,22 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Salesforce CLI
-        uses: sfdx-actions/setup-sfdx@v1
+        uses: sfdx-actions/setup-sf@v1
 
       - name: Authenticate to Salesforce using Auth URL
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
-          sfdx force:org:display -u DEPLOY_ORG
+          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+          sf org display -o DEPLOY_ORG
 
-      - name: Deploy Source (overwrite Sandbox and run selected tests)
+      - name: Deploy Source to Sandbox
         run: |
-          sfdx force:source:deploy -x manifest/package.xml \
-            --ignore-conflicts \
-            --testlevel RunSpecifiedTests \
-            --runtests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
+          sf project deploy start \
+            --manifest manifest/package.xml \
+            --force-overwrite \
+            --test-level RunSpecifiedTests \
+            --tests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
             --wait 30 \
-            -u DEPLOY_ORG
+            -o DEPLOY_ORG
