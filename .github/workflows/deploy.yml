@@ -11,6 +11,7 @@ jobs:
     name: Validate Deployment on PR
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -26,19 +27,22 @@ jobs:
           sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
           sfdx force:org:display -u DEPLOY_ORG
 
-      - name: Validate Deploy (checkonly) with MySimpleClass_Test
+      - name: Validate Deploy (checkonly with selected test classes)
         run: |
           sfdx force:source:deploy -x manifest/package.xml \
             --checkonly \
+            --ignore-conflicts \
             --testlevel RunSpecifiedTests \
-            --runtests MySimpleClass_Test \
+            --runtests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
             --wait 30 \
             -u DEPLOY_ORG
+
 
   deploy:
     name: Deploy to Salesforce on Merge to Main
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -54,10 +58,11 @@ jobs:
           sfdx auth:sfdxurl:store -f sfdx_auth.txt -a DEPLOY_ORG
           sfdx force:org:display -u DEPLOY_ORG
 
-      - name: Deploy Source with RunSpecifiedTests (CalculatorUtil_Test)
+      - name: Deploy Source (overwrite Sandbox and run selected tests)
         run: |
           sfdx force:source:deploy -x manifest/package.xml \
+            --ignore-conflicts \
             --testlevel RunSpecifiedTests \
-            --runtests CalculatorUtil_Test \
+            --runtests MySimpleClass_Test,CalculatorUtil_Test,OpportunityFetchDetails_Test,OpportunityRelatedAccounts_Test \
             --wait 30 \
             -u DEPLOY_ORG
