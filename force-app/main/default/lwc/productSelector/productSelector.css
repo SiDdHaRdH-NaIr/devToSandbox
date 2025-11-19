@@ -1,0 +1,106 @@
+/* -----------------------------
+   Search + Product Table Styles
+------------------------------*/
+
+.slds-m-around_medium {
+    padding: 1rem;
+}
+
+/* Product Name styling in edit modal */
+.prodName {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #1b5297;
+    margin-top: 0.4rem;
+}
+
+/* Row Wrapper inside Modal */
+.row {
+    margin: 0.8rem 0;
+    padding: 0.8rem 0;
+}
+
+/* --------------------------------
+   Modal Styling (Matches Salesforce)
+--------------------------------- */
+
+.slds-modal__container {
+    max-width: 70rem !important;
+    width: 95% !important;
+}
+
+/* Stretch modal content */
+.slds-modal__content {
+    max-height: 55vh;
+    overflow-y: auto;
+}
+
+/* Divider between product rows */
+hr {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    border: 0;
+    border-top: 1px solid #e5e5e5;
+}
+
+/* Delete icon hover effect */
+lightning-button-icon:hover {
+    --lwc-colorTextIconDefault: #c23934;
+}
+
+/* Align form elements properly */
+lightning-layout-item {
+    padding-right: 1rem;
+}
+
+/* Make quantity, price fields smaller */
+lightning-input {
+    width: 120px;
+}
+
+/* For service date */
+lightning-input[type="date"] {
+    width: 140px;
+}
+
+/* -------------------------------------
+   Buttons
+-------------------------------------- */
+
+.slds-modal__footer lightning-button {
+    margin-right: 0.5rem;
+}
+
+/* Brand button styling */
+lightning-button[variant="brand"] {
+    font-weight: 600;
+}
+
+/* Hover clean effect */
+lightning-button:hover {
+    opacity: 0.95;
+}
+
+/* -------------------------------
+   Responsive Adjustments
+------------------------------- */
+
+@media screen and (max-width: 768px) {
+
+    .slds-modal__container {
+        width: 100% !important;
+    }
+
+    lightning-input {
+        width: 100%;
+    }
+
+    lightning-layout {
+        display: block;
+    }
+
+    lightning-layout-item {
+        margin-bottom: 1rem;
+        padding-right: 0 !important;
+    }
+}
