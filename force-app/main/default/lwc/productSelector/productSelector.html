@@ -1,0 +1,134 @@
+<template>
+    <lightning-card title="Products">
+        <div class="slds-m-around_medium">
+
+            <!-- Search Box -->
+            <lightning-input
+                type="search"
+                label="Search Products"
+                value={searchKey}
+                onchange={handleSearchChange}>
+            </lightning-input>
+
+            <!-- Product Table -->
+            <lightning-datatable
+                key-field="Id"
+                data={filteredProducts}
+                columns={productColumns}
+                onrowselection={handleProductSelection}>
+            </lightning-datatable>
+
+            <div class="slds-m-top_medium">
+                <lightning-button 
+                    variant="brand"
+                    label="Add Selected Products"
+                    onclick={openEditModal}
+                    disabled={isDisabled}>
+                </lightning-button>
+            </div>
+
+        </div>
+    </lightning-card>
+
+
+    <!-- ================================
+              EDIT SELECTED PRODUCTS MODAL
+    ================================= -->
+    <template if:true={showModal}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <!-- Modal Header -->
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Edit Selected Products</h2>
+                </header>
+
+                <!-- Modal Body -->
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <template for:each={editableProducts} for:item="prod">
+                        <div key={prod.Id}>
+
+                            <!-- Row -->
+                            <div class="row">
+                                <lightning-layout horizontal-align="spread">
+
+                                    <!-- Product Name -->
+                                    <lightning-layout-item flexibility="auto">
+                                        <p class="prodName">{prod.Name}</p>
+                                    </lightning-layout-item>
+
+                                    <!-- Quantity -->
+                                    <lightning-layout-item flexibility="auto">
+                                        <lightning-input
+                                            type="number"
+                                            label="Quantity"
+                                            value={prod.Quantity}
+                                            data-id={prod.Id}
+                                            onchange={handleQuantityChange}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- Sales Price -->
+                                    <lightning-layout-item flexibility="auto">
+                                        <lightning-input
+                                            type="number"
+                                            label="Sales Price"
+                                            value={prod.SalesPrice}
+                                            data-id={prod.Id}
+                                            onchange={handlePriceChange}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- Date -->
+                                    <lightning-layout-item flexibility="auto">
+                                        <lightning-input
+                                            type="date"
+                                            label="Date"
+                                            value={prod.Date}
+                                            data-id={prod.Id}
+                                            onchange={handleDateChange}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <!-- Delete Icon -->
+                                    <lightning-layout-item>
+                                        <lightning-button-icon
+                                            icon-name="utility:delete"
+                                            alternative-text="Delete"
+                                            data-id={prod.Id}
+                                            onclick={removeLineItem}>
+                                        </lightning-button-icon>
+                                    </lightning-layout-item>
+
+                                </lightning-layout>
+                            </div>
+
+                            <!-- Divider -->
+                            <hr />
+
+                        </div>
+                    </template>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <footer class="slds-modal__footer">
+                    <lightning-button 
+                        label="Cancel" 
+                        onclick={closeModal}>
+                    </lightning-button>
+
+                    <lightning-button 
+                        variant="brand"
+                        label="Save"
+                        onclick={saveProducts}>
+                    </lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

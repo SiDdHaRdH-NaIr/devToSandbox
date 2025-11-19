@@ -1,0 +1,140 @@
+<template>
+
+    <!-- PRODUCTS SECTION -->
+    <lightning-card>
+        <div class="header">
+            <div class="title">Products ({lineItems.length})</div>
+
+            <lightning-button-menu
+                alternative-text="Actions"
+                icon-size="small"
+                menu-alignment="right"
+                onselect={handleMenuAction}>
+                    
+                <lightning-menu-item value="add" label="Add Products"></lightning-menu-item>
+                <lightning-menu-item value="edit" label="Edit Products"></lightning-menu-item>
+                <lightning-menu-item value="pricebook" label="Choose Price Book"></lightning-menu-item>
+                <lightning-menu-item value="sort" label="Sort Products"></lightning-menu-item>
+
+            </lightning-button-menu>
+        </div>
+
+        <div class="table-container">
+            <lightning-datatable
+                key-field="Id"
+                data={lineItems}
+                columns={columns}
+                hide-checkbox-column>
+            </lightning-datatable>
+        </div>
+
+    </lightning-card>
+
+
+
+    <!-- STEP 1: PRODUCT SELECTION MODAL -->
+    <template if:true={showStep1}>
+        <section class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Add Products</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <lightning-input
+                        type="search"
+                        placeholder="Search Products..."
+                        onchange={handleSearch}>
+                    </lightning-input>
+
+                    <p class="slds-m-top_small slds-text-title_bold">
+                        Show Selected ({selectedProducts.length})
+                    </p>
+
+                    <div class="table-wrapper">
+                        <div class="table-scroll">
+                            <lightning-datatable
+                                key-field="Id"
+                                data={filteredProducts}
+                                columns={productColumns}
+                                onrowselection={handleProductSelection}>
+                            </lightning-datatable>
+                        </div>
+                    </div>
+
+                </div>
+
+                <footer class="slds-modal__footer slds-grid slds-grid_align-end">
+                    <lightning-button label="Cancel" onclick={closeStep1}></lightning-button>
+                    <lightning-button variant="brand" label="Next" onclick={openStep2}></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+
+
+    <!-- STEP 2: EDIT SELECTED PRODUCTS -->
+    <template if:true={showStep2}>
+        <section class="slds-modal slds-fade-in-open">
+            <div class="slds-modal__container">
+
+                <header class="slds-modal__header">
+                    <h2 class="slds-text-heading_medium">Edit Selected Products</h2>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium">
+
+                    <template for:each={step2Products} for:item="prod">
+                        <div key={prod.Id}>
+
+                            <div class="row">
+                                <lightning-layout horizontal-align="spread">
+
+                                    <lightning-layout-item>
+                                        <lightning-input
+                                            type="number"
+                                            label="Quantity"
+                                            value={prod.Quantity}
+                                            data-id={prod.Id}
+                                            onchange={changeQuantity}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                    <lightning-layout-item>
+                                        <lightning-input
+                                            type="number"
+                                            label="Sales Price"
+                                            value={prod.SalesPrice}
+                                            data-id={prod.Id}
+                                            onchange={changePrice}>
+                                        </lightning-input>
+                                    </lightning-layout-item>
+
+                                </lightning-layout>
+                            </div>
+
+                            <hr/>
+
+                        </div>
+                    </template>
+
+                </div>
+
+                <footer class="slds-modal__footer slds-grid slds-grid_align-end">
+                    <lightning-button label="Back" onclick={backToStep1}></lightning-button>
+                    <lightning-button variant="brand" label="Save" onclick={saveProducts}></lightning-button>
+                </footer>
+
+            </div>
+        </section>
+
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+
+</template>

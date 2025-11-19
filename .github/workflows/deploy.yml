@@ -27,17 +27,13 @@ jobs:
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
           sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
 
-      - name: Validate Deploy (dry run with tests)
+      - name: Validate Deploy (dry run + run all tests)
         run: |
           sf project deploy start \
             --manifest manifest/package.xml \
             --dry-run \
             --ignore-conflicts \
-            --tests ApexHello_Test \
-            --tests MySimpleClass_Test \
-            --tests CalculatorUtil_Test \
-            --tests OpportunityFetchDetails_Test \
-            --tests OpportunityRelatedAccounts_Test \
+            --test-level RunLocalTests \
             --wait 30 \
             -o DEPLOY_ORG
 
@@ -62,15 +58,11 @@ jobs:
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
           sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
 
-      - name: Deploy Source with tests
+      - name: Deploy Source and run all tests
         run: |
           sf project deploy start \
             --manifest manifest/package.xml \
             --ignore-conflicts \
-            --tests ApexHello_Test \
-            --tests MySimpleClass_Test \
-            --tests CalculatorUtil_Test \
-            --tests OpportunityFetchDetails_Test \
-            --tests OpportunityRelatedAccounts_Test \
+            --test-level RunLocalTests \
             --wait 30 \
             -o DEPLOY_ORG
