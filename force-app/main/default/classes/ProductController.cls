@@ -14,22 +14,45 @@ public with sharing class ProductController {
     @AuraEnabled
     public static void saveOpportunityProducts(Id oppId, String productData) {
 
-        List<Object> raw = (List<Object>) JSON.deserializeUntyped(productData);
-
+        List<Object> rawList = (List<Object>) JSON.deserializeUntyped(productData);
         List<Map<String, Object>> rows = new List<Map<String, Object>>();
-        for (Object obj : raw) {
+
+        for (Object obj : rawList) {
             rows.add((Map<String, Object>) obj);
         }
 
         List<OpportunityLineItem> items = new List<OpportunityLineItem>();
 
-        for (Map<String, Object> r : rows) {
+        for (Map<String, Object> row : rows) {
+
+            Date serviceDt = null;
+            if (row.get('Date') != null) {
+                String dt = String.valueOf(row.get('Date'));
+
+                try {
+                    // yyyy-MM-dd or yyyy-MM-ddThh:mm:ss formats
+                    if (dt.contains('T')) {
+                        dt = dt.substring(0, dt.indexOf('T'));
+                    }
+                    serviceDt = Date.valueOf(dt);
+                } 
+                catch (Exception ex1) {
+                    try {
+                        // Fallback for Salesforce acceptable textual formats
+                        serviceDt = Date.parse(dt);
+                    }
+                    catch (Exception ex2) {
+                        serviceDt = null; // last fallback
+                    }
+                }
+            }
+
             items.add(new OpportunityLineItem(
                 OpportunityId = oppId,
-                PricebookEntryId = (String) r.get('Id'),
-                Quantity = (Decimal) r.get('Quantity'),
-                UnitPrice = (Decimal) r.get('SalesPrice'),
-                ServiceDate = (Date) r.get('Date')
+                PricebookEntryId = (String) row.get('Id'),
+                Quantity = (Decimal) row.get('Quantity'),
+                UnitPrice = (Decimal) row.get('SalesPrice'),
+                ServiceDate = serviceDt
             ));
         }
 
@@ -56,6 +79,7 @@ public with sharing class ProductController {
                 'UnitPrice' => oli.UnitPrice
             });
         }
+
         return results;
     }
 }
