@@ -66,3 +66,27 @@ jobs:
             --test-level RunLocalTests \
             --wait 30 \
             -o DEPLOY_ORG
+deploy_uat:
+    name: Deploy to UAT
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/uat'
+
+    steps:
+      - uses: actions/checkout@v4
+      - run: npm install --global @salesforce/cli
+
+      - name: Authenticate to UAT
+        env:
+          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL_UAT }}
+        run: |
+          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
+          sf org login sfdx-url -f sfdx_auth.txt -a UAT
+
+      - name: Deploy to UAT
+        run: |
+          sf project deploy start \
+            --manifest manifest/package.xml \
+            --ignore-conflicts \
+            --test-level RunLocalTests \
+            --wait 30 \
+            -o UAT
