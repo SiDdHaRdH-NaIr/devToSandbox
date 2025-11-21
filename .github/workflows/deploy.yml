@@ -1,104 +1,180 @@
-name: Salesforce Deployment Pipeline
+name: Salesforce Delta Deployment Pipeline
 
 on:
   pull_request:
-    branches: [ main, uat ]
+    branches:
+      - main
+      - uat
   push:
-    branches: [ main, uat ]
+    branches:
+      - main
+      - uat
 
 jobs:
 
-  ########################################
-  # VALIDATION JOB (runs on PR)
-  ########################################
+  #############################################
+  # PR VALIDATION (CHECK-ONLY, DELTA)
+  #############################################
   validate:
-    name: Validate Deployment on PR
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
-      - name: Install Salesforce CLI (sf)
-        run: npm install --global @salesforce/cli
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Authenticate to Salesforce using Auth URL
+      # Install Salesforce CLI (sf)
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      # Install sfdx-git-delta
+      - name: Install sfdx-git-delta Plugin
+        run: |
+          echo y | sf plugins install sfdx-git-delta
+          sf plugins
+
+      # Determine target org (QA for main PR, UAT for uat PR)
+      - name: Select Validation Target
+        id: target
+        run: |
+          if [[ "${{ github.base_ref }}" == "main" ]]; then
+            echo "ORG=QA" >> $GITHUB_OUTPUT
+          else
+            echo "ORG=UAT" >> $GITHUB_OUTPUT
+          fi
+
+      # Authenticate
+      - name: Authenticate to Target Org
         env:
-          SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
+          QA_URL: ${{ secrets.SFDX_AUTH_URL }}
+          UAT_URL: ${{ secrets.SFDX_AUTH_URL_UAT }}
         run: |
-          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+          if [[ "${{ steps.target.outputs.ORG }}" == "QA" ]]; then
+            echo "$QA_URL" > auth.txt
+            sf org login sfdx-url -f auth.txt -a QA
+          else
+            echo "$UAT_URL" > auth.txt
+            sf org login sfdx-url -f auth.txt -a UAT
+          fi
 
-      - name: Validate Deploy (dry run + run all tests)
+      # Create delta (base vs head)
+      - name: Generate Delta (PR Validation)
         run: |
-          sf project deploy start \
-            --manifest manifest/package.xml \
-            --dry-run \
-            --ignore-conflicts \
-            --test-level RunLocalTests \
-            --wait 30 \
-            -o DEPLOY_ORG
+          mkdir changed-sources
+          BASE="${{ github.event.pull_request.base.sha }}"
+          HEAD="${{ github.event.pull_request.head.sha }}"
+          sf sgd:source:delta --to "$HEAD" --from "$BASE" --output changed-sources/ --generate-delta --source force-app/
 
+      # Validate deployment (no manifest used)
+      - name: Validate Delta Deployment (Check-only)
+        run: |
+          if [ -d "changed-sources/force-app" ]; then
+            sf project deploy start \
+              --source-dir changed-sources/force-app \
+              --dry-run \
+              --ignore-conflicts \
+              --test-level RunLocalTests \
+              --wait 30 \
+              -o ${{ steps.target.outputs.ORG }}
+          else
+            echo "No delta detected → skipping validation."
+          fi
 
-  ########################################
+  #############################################
   # DEPLOY TO QA (main branch)
-  ########################################
-  deploy:
-    name: Deploy to Salesforce on Merge to Main
+  #############################################
+  deploy_qa:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
-      - name: Install Salesforce CLI (sf)
-        run: npm install --global @salesforce/cli
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
 
-      - name: Authenticate to Salesforce using Auth URL
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Install sfdx-git-delta
+        run: |
+          echo y | sf plugins install sfdx-git-delta
+
+      - name: Authenticate to QA
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
-          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sf org login sfdx-url -f sfdx_auth.txt -a DEPLOY_ORG
+          echo "$SFDX_AUTH_URL" > auth.txt
+          sf org login sfdx-url -f auth.txt -a QA
 
-      - name: Deploy Source and run all tests
+      - name: Generate Delta for QA
         run: |
-          sf project deploy start \
-            --manifest manifest/package.xml \
-            --ignore-conflicts \
-            --test-level RunLocalTests \
-            --wait 30 \
-            -o DEPLOY_ORG
+          mkdir changed-sources
+          sf sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
 
+      - name: Deploy Delta to QA
+        run: |
+          if [ -d "changed-sources/force-app" ]; then
+            sf project deploy start \
+              --source-dir changed-sources/force-app \
+              --ignore-conflicts \
+              --test-level RunLocalTests \
+              --wait 30 \
+              -o QA
+          else
+            echo "No delta for QA deployment."
+          fi
 
-  ########################################
+  #############################################
   # DEPLOY TO UAT (uat branch)
-  ########################################
+  #############################################
   deploy_uat:
-    name: Deploy to UAT
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/uat'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/uat'
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
 
-      - run: npm install --global @salesforce/cli
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Install Salesforce CLI
+        run: |
+          npm install --global @salesforce/cli
+          sf --version
+
+      - name: Install sfdx-git-delta
+        run: |
+          echo y | sf plugins install sfdx-git-delta
 
       - name: Authenticate to UAT
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL_UAT }}
         run: |
-          echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sf org login sfdx-url -f sfdx_auth.txt -a UAT
+          echo "$SFDX_AUTH_URL" > auth.txt
+          sf org login sfdx-url -f auth.txt -a UAT
 
-      - name: Deploy to UAT
+      - name: Generate Delta for UAT
         run: |
-          sf project deploy start \
-            --manifest manifest/package.xml \
-            --ignore-conflicts \
-            --test-level RunLocalTests \
-            --wait 30 \
-            -o UAT
+          mkdir changed-sources
+          sf sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
+
+      - name: Deploy Delta to UAT
+        run: |
+          if [ -d "changed-sources/force-app" ]; then
+            sf project deploy start \
+              --source-dir changed-sources/force-app \
+              --ignore-conflicts \
+              --test-level RunLocalTests \
+              --wait 30 \
+              -o UAT
+          else
+            echo "No delta for UAT deployment."
+          fi
