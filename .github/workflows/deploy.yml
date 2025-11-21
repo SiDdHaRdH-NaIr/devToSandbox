@@ -12,27 +12,31 @@ on:
 
 jobs:
 
+  #############################################
+  # PR VALIDATION (Delta + Check-only)
+  #############################################
   validate:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Install sfdx (CLI)
+      - name: Install Salesforce CLI (sfdx)
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir -p ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          sf version
+          sfdx --version
 
-      - name: Install sfdx-git-delta plugin
+      - name: Install sfdx-git-delta
         run: |
-          echo y | sf plugins install sfdx-git-delta || true
-          sf plugins
+          echo y | sfdx plugins:install sfdx-git-delta || true
+          sfdx plugins
 
       - name: Select validation target
         id: select-target
@@ -50,128 +54,128 @@ jobs:
         run: |
           if [[ "${{ steps.select-target.outputs.target }}" == "QA" ]]; then
             echo "$QA_URL" > sfdx_auth.txt
-            sf org login sfdx-url -f sfdx_auth.txt -a QA
+            sfdx auth:sfdxurl:store -f sfdx_auth.txt -a QA -s
           else
             echo "$UAT_URL" > sfdx_auth.txt
-            sf org login sfdx-url -f sfdx_auth.txt -a UAT
+            sfdx auth:sfdxurl:store -f sfdx_auth.txt -a UAT -s
           fi
 
-      - name: Create delta (PR validation)
+      - name: Generate Delta (PR)
         run: |
-          mkdir changed-sources || true
-          # compare the PR head to the target branch reference to capture all PR changes
+          mkdir -p changed-sources
           BASE="${{ github.event.pull_request.base.sha }}"
           HEAD="${{ github.event.pull_request.head.sha }}"
-          sf sgd:source:delta --to "$HEAD" --from "$BASE" --output changed-sources/ --generate-delta --source force-app/
+          sfdx sgd:source:delta --to "$HEAD" --from "$BASE" --output changed-sources/ --generate-delta --source force-app/
 
-      - name: Validate delta deploy (check-only)
+      - name: Validate Delta Deployment
         run: |
           if [ -d "changed-sources/force-app" ]; then
-            sf project deploy start \
-              --source-dir changed-sources/force-app \
-              --manifest changed-sources/package.xml \
-              --dry-run \
-              --ignore-conflicts \
-              --test-level RunLocalTests \
-              --wait 30 \
-              -o ${{ steps.select-target.outputs.target }}
+            sfdx force:source:deploy \
+              -p "changed-sources/force-app" \
+              --checkonly \
+              --ignoreconflicts \
+              --testlevel RunLocalTests \
+              -u ${{ steps.select-target.outputs.target }}
           else
-            echo "No changes detected by delta; skipping validation."
+            echo "No delta to validate."
           fi
 
+  #############################################
+  # DEPLOY TO QA (when main branch is pushed)
+  #############################################
   deploy_qa:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Install sfdx
+      - name: Install Salesforce CLI
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir -p ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          sf version
+          sfdx --version
 
       - name: Install sfdx-git-delta
         run: |
-          echo y | sf plugins install sfdx-git-delta || true
-          sf plugins
+          echo y | sfdx plugins:install sfdx-git-delta || true
+          sfdx plugins
 
       - name: Authenticate to QA
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL }}
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sf org login sfdx-url -f sfdx_auth.txt -a QA
+          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a QA -s
 
-      - name: Create delta for push (main)
+      - name: Generate delta for main push
         run: |
-          mkdir changed-sources || true
-          # create delta between previous commit on main and HEAD (merge commit)
-          sf sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
+          mkdir -p changed-sources
+          sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
 
       - name: Deploy delta to QA
         run: |
           if [ -d "changed-sources/force-app" ]; then
-            sf project deploy start \
-              --source-dir changed-sources/force-app \
-              --manifest changed-sources/package.xml \
-              --ignore-conflicts \
-              --test-level RunLocalTests \
-              --wait 30 \
-              -o QA
+            sfdx force:source:deploy \
+              -p "changed-sources/force-app" \
+              --ignoreconflicts \
+              --testlevel RunLocalTests \
+              -u QA
           else
             echo "No delta to deploy to QA."
           fi
 
+  #############################################
+  # DEPLOY TO UAT (when uat branch is pushed)
+  #############################################
   deploy_uat:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/uat'
+
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: Install sfdx
+      - name: Install Salesforce CLI
         run: |
           wget https://developer.salesforce.com/media/salesforce-cli/sfdx/channels/stable/sfdx-linux-x64.tar.xz
           mkdir -p ~/sfdx
           tar xJf sfdx-linux-x64.tar.xz -C ~/sfdx --strip-components 1
           echo "$HOME/sfdx/bin" >> $GITHUB_PATH
-          sf version
+          sfdx --version
 
       - name: Install sfdx-git-delta
         run: |
-          echo y | sf plugins install sfdx-git-delta || true
-          sf plugins
+          echo y | sfdx plugins:install sfdx-git-delta || true
+          sfdx plugins
 
       - name: Authenticate to UAT
         env:
           SFDX_AUTH_URL: ${{ secrets.SFDX_AUTH_URL_UAT }}
         run: |
           echo "$SFDX_AUTH_URL" > sfdx_auth.txt
-          sf org login sfdx-url -f sfdx_auth.txt -a UAT
+          sfdx auth:sfdxurl:store -f sfdx_auth.txt -a UAT -s
 
-      - name: Create delta for push (uat)
+      - name: Generate delta for uat push
         run: |
-          mkdir changed-sources || true
-          sf sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
+          mkdir -p changed-sources
+          sfdx sgd:source:delta --to "HEAD" --from "HEAD^" --output changed-sources/ --generate-delta --source force-app/
 
       - name: Deploy delta to UAT
         run: |
           if [ -d "changed-sources/force-app" ]; then
-            sf project deploy start \
-              --source-dir changed-sources/force-app \
-              --manifest changed-sources/package.xml \
-              --ignore-conflicts \
-              --test-level RunLocalTests \
-              --wait 30 \
-              -o UAT
+            sfdx force:source:deploy \
+              -p "changed-sources/force-app" \
+              --ignoreconflicts \
+              --testlevel RunLocalTests \
+              -u UAT
           else
             echo "No delta to deploy to UAT."
           fi
